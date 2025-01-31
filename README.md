@@ -1,9 +1,106 @@
 # DSA-PROJECT-HASH-TABLE-IMPLEMENTATION
-1. Structure and Components Node Class: Represents each entry in the hash table, storing a key-value pair and a pointer to the next node (for chaining). HashTable Class: Manages the hash table, including its operations and resizing logic.
-2. Hashing Mechanism
-The _hash function uses Python’s built-in hash() function with modulo (%) operation to determine an index in the table. If two keys hash to the same index, separate chaining via a linked list is used to store multiple values at that index.
+class Node:
+    """Node for storing key-value pairs in a linked list (for chaining)."""
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+        self.next = None
 
-3. Key Operations
-Insertion (insert): Computes the index using _hash, then adds a new node at the front of the linked list if necessary. If the key already exists, its value is updated.
-Search (search): Traverses the linked list at the computed index to find and return the value for the given key.
-Deletion (delete): Searches for the key in the linked list and removes the corresponding node, ensuring proper linking.
+class HashTable:
+    """Custom Hash Table with Chaining and Dynamic Resizing."""
+    def __init__(self, size=10):
+        self.size = size
+        self.table = [None] * self.size
+        self.count = 0  # Track number of elements
+        self.load_factor_threshold = 0.7  # Resize if exceeded
+
+    def _hash(self, key):
+        """Hash function using modulo operation."""
+        return hash(key) % self.size
+
+    def _resize(self):
+        """Doubles the table size and rehashes all elements."""
+        new_size = self.size * 2
+        new_table = [None] * new_size
+        old_table = self.table
+        self.table = new_table
+        self.size = new_size
+        self.count = 0  # Reset count and reinsert
+
+        for node in old_table:
+            while node:
+                self.insert(node.key, node.value)
+                node = node.next
+
+    def insert(self, key, value):
+        """Inserts a key-value pair into the hash table."""
+        index = self._hash(key)
+        node = self.table[index]
+
+        while node:
+            if node.key == key:
+                node.value = value  # Update existing key
+                return
+            node = node.next
+
+        # Insert new node at the head (chaining)
+        new_node = Node(key, value)
+        new_node.next = self.table[index]
+        self.table[index] = new_node
+        self.count += 1
+
+        # Check if resizing is needed
+        if self.count / self.size > self.load_factor_threshold:
+            self._resize()
+
+    def search(self, key):
+        """Searches for a key in the hash table."""
+        index = self._hash(key)
+        node = self.table[index]
+
+        while node:
+            if node.key == key:
+                return node.value
+            node = node.next
+
+        return None  # Key not found
+
+    def delete(self, key):
+        """Deletes a key-value pair from the hash table."""
+        index = self._hash(key)
+        node = self.table[index]
+        prev = None
+
+        while node:
+            if node.key == key:
+                if prev:
+                    prev.next = node.next
+                else:
+                    self.table[index] = node.next
+                self.count -= 1
+                return True  # Key deleted
+            prev = node
+            node = node.next
+
+        return False  # Key not found
+
+    def display(self):
+        """Displays the hash table contents."""
+        for i, node in enumerate(self.table):
+            print(f"Index {i}: ", end="")
+            while node:
+                print(f"({node.key}: {node.value}) -> ", end="")
+                node = node.next
+            print("None")
+
+# Example Usage
+ht = HashTable()
+ht.insert("apple", 100)
+ht.insert("banana", 200)
+ht.insert("orange", 300)
+ht.insert("grape", 400)
+ht.display()
+
+print("Search for 'banana':", ht.search("banana"))  # Output: 200
+ht.delete("banana")
+ht.display()
